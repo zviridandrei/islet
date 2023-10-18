@@ -3,7 +3,7 @@ pub mod error;
 pub mod hostcall;
 pub mod psci;
 
-use crate::define_interface;
+use crate::{define_interface, granule};
 use crate::event::RsiHandle;
 use crate::granule::GranuleState;
 use crate::listen;
@@ -14,7 +14,7 @@ use crate::rmi;
 use crate::rmi::error::{Error, InternalError::NotExistRealm};
 use crate::rmi::realm::Rd;
 use crate::rmi::rec::run::Run;
-use crate::rmi::rec::Rec;
+use crate::rmi::rec::{Rec, RmmRecAttestState};
 use crate::rmi::rtt::{validate_ipa, RTT_PAGE_LEVEL};
 use crate::rsi::hostcall::{HostCall, HOST_CALL_NR_GPRS};
 use crate::Monitor;
@@ -101,9 +101,120 @@ pub trait Interface {
         index: usize,
         f: impl Fn(&mut Measurement) -> Result<(), MeasurementError>,
     ) -> Result<(), error::Error>;
+    // fn get_attestation_token(
+    //     &self,
+    //     realmid: usize,
+    //     challenge: &[u8],
+    //     measurements: &[Measurement],
+    // );
 }
 
+const RSI_SUCCESS: usize = 0;
+const RSI_ERROR_INPUT: usize = 1;
+const RSI_ERROR_STATE: usize = 2;
+// TODO: use when CONTINUE is fully implemented
+// const RSI_INCOMPLETE: usize = 3;
+
 pub fn set_event_handler(rsi: &mut RsiHandle) {
+    listen!(rsi, ATTEST_TOKEN_INIT, |_arg, ret, rmm, rec, _| {
+        let rmi = rmm.rmi;
+
+        let g_rd = get_granule_if!(rec.owner(), GranuleState::RD)?;
+        let realmid = g_rd.content::<Rd>().id();
+        drop(g_rd); // manually drop to reduce a lock contention
+
+        let vcpuid = rec.id();
+
+        let mut challenge: [u8; 64] = [0; 64];
+
+        for i in 0..8 {
+            let challenge_part = rmi.get_reg(realmid, vcpuid, i + 2)?;
+            let start_idx = i * 8;
+            let end_idx = start_idx + 8;
+            challenge[start_idx..end_idx].copy_from_slice(&challenge_part.to_ne_bytes());
+        }
+        warn!("Received challenge: {}", hex::encode(challenge));
+
+        rec.set_attest_challenge(&challenge);
+        rec.set_attest_state(RmmRecAttestState::AttestInProgress);
+
+        if rmi.set_reg(realmid, vcpuid, 0, RSI_SUCCESS).is_err() {
+            warn!(
+                "Unable to set register 0. realmid: {:?} vcpuid: {:?}",
+                realmid, vcpuid
+            );
+        }
+
+        // TODO: Calculate real token size
+        if rmi.set_reg(realmid, vcpuid, 1, 4096).is_err() {
+            warn!(
+                "Unable to set register 1. realmid: {:?} vcpuid: {:?}",
+                realmid, vcpuid
+            );
+        }
+
+        ret[0] = rmi::SUCCESS_REC_ENTER;
+        Ok(())
+    });
+
+    listen!(rsi, ATTEST_TOKEN_CONTINUE, |_arg, ret, rmm, rec, _| {
+        let rmi = rmm.rmi;
+
+        let g_rd = get_granule_if!(rec.owner(), GranuleState::RD)?;
+        let realmid = g_rd.content::<Rd>().id();
+        drop(g_rd); // manually drop to reduce a lock contention
+
+        let vcpuid = rec.id();
+
+        if rec.attest_state() != RmmRecAttestState::AttestInProgress {
+            if rmi.set_reg(realmid, vcpuid, 0, RSI_ERROR_STATE).is_err() {
+                warn!(
+                    "Unable to set register 0. realmid: {:?} vcpuid: {:?}",
+                    realmid, vcpuid
+                );
+            }
+            ret[0] = rmi::SUCCESS_REC_ENTER;
+            return Ok(());
+        }
+
+        let attest_ipa = rmi.get_reg(realmid, vcpuid, 1)?;
+        let offset: usize = rmi.get_reg(realmid, vcpuid, 2)?;
+        let size: usize = rmi.get_reg(realmid, vcpuid, 3)?;
+
+        // TODO: take offset and size into consideration
+        if offset + size < offset
+            || offset + size > granule::GRANULE_SIZE
+        {
+            if rmi.set_reg(realmid, vcpuid, 0, RSI_ERROR_INPUT).is_err() {
+                warn!(
+                    "Unable to set register 0. realmid: {:?} vcpuid: {:?}",
+                    realmid, vcpuid
+                );
+            }
+            ret[0] = rmi::SUCCESS_REC_ENTER;
+            return Ok(());
+        }
+
+        let attest_size = rmi.attest(realmid, attest_ipa, &[])?;
+
+        if rmi.set_reg(realmid, vcpuid, 0, RSI_SUCCESS).is_err() {
+            warn!(
+                "Unable to set register 0. realmid: {:?} vcpuid: {:?}",
+                realmid, vcpuid
+            );
+        }
+
+        if rmi.set_reg(realmid, vcpuid, 1, attest_size).is_err() {
+            warn!(
+                "Unable to set register 1. realmid: {:?} vcpuid: {:?}",
+                realmid, vcpuid
+            );
+        }
+
+        ret[0] = rmi::SUCCESS_REC_ENTER;
+        Ok(())
+    });
+
     listen!(rsi, HOST_CALL, do_host_call);
 
     listen!(rsi, ABI_VERSION, |_arg, ret, rmm, rec, _| {
