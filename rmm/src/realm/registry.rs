@@ -25,6 +25,7 @@ use crate::realm::timer;
 use crate::rmi::error::Error;
 use crate::rmi::error::InternalError::*;
 use crate::rmi::rtt_entry_state;
+use crate::rmm_el3::{plat_token, realm_attest_key};
 use crate::rmm_exit;
 use crate::rsi::attestation::Attestation;
 use crate::rsi::error::Error as RsiError;
@@ -965,7 +966,7 @@ impl crate::rsi::Interface for RsiHandle {
         // TODO: consider storing attestation object somewhere,
         // as RAK and token do not change during rmm lifetime.
         let token =
-            Attestation::new(&[], &[])
+            Attestation::new(&plat_token(), &realm_attest_key())
             .create_attestation_token(
                 challenge,
                 measurements,
