@@ -12,6 +12,7 @@ use crate::rmi::error::Error;
 use crate::rmi::error::InternalError::*;
 use crate::rmi::Rd;
 use crate::rmm_exit;
+use crate::rsi::attestation::MAX_CHALLENGE_SIZE;
 use core::cell::OnceCell;
 
 pub use self::handlers::set_event_handler;
@@ -37,7 +38,9 @@ struct Ripas {
 #[derive(Debug)]
 pub struct Rec<'a> {
     attest_state: RmmRecAttestState,
-    attest_challenge: [u8; 64],
+    // TODO: Create consts for both numbers
+    attest_challenge: [u8; MAX_CHALLENGE_SIZE],
+    attest_token_offset: usize,
     /// PA of RD of Realm which owns this REC
     ///
     /// Safety:
@@ -84,6 +87,10 @@ impl Rec<'_> {
         &self.attest_challenge
     }
 
+    pub fn attest_token_offset(&self) -> usize {
+        self.attest_token_offset
+    }
+
     pub fn runnable(&self) -> bool {
         self.runnable
     }
@@ -114,6 +121,10 @@ impl Rec<'_> {
 
     pub fn set_attest_challenge(&mut self, challenge: &[u8]) {
         self.attest_challenge.copy_from_slice(challenge);
+    }
+
+    pub fn set_attest_offset(&mut self, offset: usize) {
+        self.attest_token_offset = offset;
     }
 
     pub fn set_host_call_pending(&mut self, val: bool) {
