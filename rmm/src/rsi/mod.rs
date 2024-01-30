@@ -4,6 +4,7 @@ pub mod error;
 pub mod hostcall;
 pub mod measurement;
 pub mod psci;
+pub mod version;
 
 use alloc::vec::Vec;
 
@@ -44,9 +45,8 @@ pub const ERROR_INPUT: usize = 1;
 pub const ERROR_STATE: usize = 2;
 pub const INCOMPLETE: usize = 3;
 
-const ABI_VERSION_MAJOR: usize = 1;
-const ABI_VERSION_MINOR: usize = 0;
-pub const VERSION: usize = (ABI_VERSION_MAJOR << 16) | ABI_VERSION_MINOR;
+pub const ABI_VERSION_MAJOR: usize = 1;
+pub const ABI_VERSION_MINOR: usize = 0;
 
 extern crate alloc;
 
@@ -211,13 +211,25 @@ pub fn set_event_handler(rsi: &mut RsiHandle) {
         let vcpuid = rec.vcpuid();
         let realmid = rec.realmid()?;
 
-        if set_reg(realmid, vcpuid, 0, VERSION).is_err() {
-            warn!(
-                "Unable to set register 0. realmid: {:?} vcpuid: {:?}",
-                realmid, vcpuid
-            );
+        let req = get_reg(realmid, vcpuid, 1)?;
+
+        let (req_major, req_minor) = version::decode_version(req);
+
+        if req_major != ABI_VERSION_MAJOR || req_minor != ABI_VERSION_MINOR {
+            warn!("Wrong unsupported version requested ({}, {})", req_major, req_minor);
+            set_reg(realmid, vcpuid, 0, ERROR_INPUT)?;
+            ret[0] = rmi::SUCCESS_REC_ENTER;
+            return Ok(());
         }
-        trace!("RSI_ABI_VERSION: {:#X?}", VERSION);
+
+        let lower = version::encode_version();
+        let higher = lower;
+
+        set_reg(realmid, vcpuid, 0, SUCCESS)?;
+        set_reg(realmid, vcpuid, 1, lower)?;
+        set_reg(realmid, vcpuid, 2, higher)?;
+
+        trace!("RSI_ABI_VERSION: {:#X?} {:#X?}", lower, higher);
         ret[0] = rmi::SUCCESS_REC_ENTER;
         Ok(())
     });

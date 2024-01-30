@@ -26,7 +26,7 @@ impl Constraint {
 lazy_static! {
     static ref CONSTRAINTS: BTreeMap<Command, Constraint> = {
         let mut m = BTreeMap::new();
-        m.insert(rmi::VERSION, Constraint::new(rmi::VERSION, 1, 1));
+        m.insert(rmi::VERSION, Constraint::new(rmi::VERSION, 2, 3));
         m.insert(
             rmi::GRANULE_DELEGATE,
             Constraint::new(rmi::GRANULE_DELEGATE, 2, 1),
