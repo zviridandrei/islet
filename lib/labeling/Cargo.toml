@@ -1,0 +1,7 @@
+[package]
+name = "labeling"
+version = "0.0.1"
+authors = ["Islet Contributors"]
+edition = "2021"
+
+[dependencies]
