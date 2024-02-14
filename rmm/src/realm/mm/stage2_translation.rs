@@ -58,6 +58,7 @@ impl<'a> Stage2Translation<'a> {
     #[cfg(feature = "realm_linux")]
     pub fn new(rtt_base: usize) -> Self {
         let root_pgtlb = unsafe {
+            labeling::unlabeled();
             &mut *PageTable::<
                 GuestPhysAddr,
                 L2Table,
@@ -76,6 +77,7 @@ impl<'a> Stage2Translation<'a> {
     #[cfg(not(feature = "realm_linux"))]
     pub fn new(rtt_base: usize) -> Self {
         let root_pgtlb = unsafe {
+            labeling::unlabeled();
             &mut *PageTable::<
                 GuestPhysAddr,
                 L0Table,
@@ -100,6 +102,7 @@ impl<'a> Stage2Translation<'a> {
             let _level: u64 = S::MAP_TABLE_LEVEL as u64;
             let mut ipa: u64 = guest.address().as_u64() >> 12;
             unsafe {
+                labeling::unlabeled();
                 ipa = bits_in_reg(TLBI_OP::NS, tlbi_ns::IPAS_S)
                     | bits_in_reg(TLBI_OP::TTL, 0b0100 | _level)
                     | bits_in_reg(TLBI_OP::IPA, ipa);
@@ -117,12 +120,14 @@ impl<'a> Stage2Translation<'a> {
 
 impl<'a> MemAlloc for Stage2Translation<'a> {
     unsafe fn alloc(layout: Layout) -> *mut u8 {
+        labeling::unlabeled();
         error!("alloc for Stage2Translation is not allowed. {:?}", layout);
         // Safety: the caller must do proper error handling with this null pointer.
         core::ptr::null_mut()
     }
 
     unsafe fn alloc_zeroed(layout: Layout) -> *mut u8 {
+        labeling::unlabeled();
         error!(
             "alloc_zeroed for Stage2Translation is not allowed. {:?}",
             layout
@@ -132,6 +137,7 @@ impl<'a> MemAlloc for Stage2Translation<'a> {
     }
 
     unsafe fn dealloc(ptr: *mut u8, layout: Layout) {
+        labeling::unlabeled();
         error!(
             "dealloc for Stage2Translation is not allowed. {:?}, {:?}",
             ptr, layout
@@ -216,6 +222,7 @@ impl<'a> IPATranslation for Stage2Translation<'a> {
     fn clean(&mut self) {
         if self.dirty {
             unsafe {
+                labeling::unlabeled();
                 // According to DDI0608A E1.2.1.11 Cache and TLB operations
                 // second half part
                 asm! {

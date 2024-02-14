@@ -55,6 +55,7 @@ use crate::rmm_el3::setup_el3_ifc;
 use armv9a::{bits_in_reg, regs::*};
 
 pub unsafe fn start(cpu_id: usize) {
+    labeling::unlabeled();
     setup_mmu_cfg();
     setup_el2();
     setup_gst();
@@ -67,6 +68,7 @@ pub unsafe fn start(cpu_id: usize) {
 }
 
 unsafe fn setup_el2() {
+    labeling::unlabeled();
     HCR_EL2.set(
         HCR_EL2::FWB
             | HCR_EL2::TEA
@@ -93,6 +95,7 @@ unsafe fn setup_el2() {
 }
 
 unsafe fn setup_mmu_cfg() {
+    labeling::unlabeled();
     core::arch::asm!("tlbi alle2is", "dsb ish", "isb",);
 
     // /* Set attributes in the right indices of the MAIR. */
@@ -142,6 +145,8 @@ unsafe fn setup_mmu_cfg() {
 /// pagefault returns [rmi::RET_PAGE_FAULT, faulted address, _]
 #[cfg(not(kani))]
 pub unsafe fn rmm_exit(args: [usize; 4]) -> [usize; 4] {
+    labeling::unlabeled();
+    let __crate_hint_islet_rmm: u8;
     let mut ret: [usize; 4] = [0usize; 4];
 
     core::arch::asm!(
@@ -157,6 +162,7 @@ pub unsafe fn rmm_exit(args: [usize; 4]) -> [usize; 4] {
 
 #[cfg(kani)]
 pub unsafe fn rmm_exit(_args: [usize; 4]) -> [usize; 4] {
+    labeling::unlabeled();
     let ret: [usize; 4] = [0usize; 4];
     ret
 }

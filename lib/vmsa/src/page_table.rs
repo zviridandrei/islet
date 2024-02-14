@@ -80,14 +80,17 @@ pub trait Entry {
 /// Safety: the caller must do proper error handling if it's failed to allocate memory
 pub trait MemAlloc {
     unsafe fn alloc(layout: Layout) -> *mut u8 {
+        labeling::unlabeled();
         alloc::alloc::alloc(layout)
     }
 
     unsafe fn alloc_zeroed(layout: Layout) -> *mut u8 {
+        labeling::unlabeled();
         alloc::alloc::alloc_zeroed(layout)
     }
 
     unsafe fn dealloc(ptr: *mut u8, layout: Layout) {
+        labeling::unlabeled();
         alloc::alloc::dealloc(ptr, layout);
     }
 }
@@ -174,6 +177,7 @@ impl<A: Address, L: Level, E: Entry, const N: usize> PageTableMethods<A, L, E, N
         assert_eq!(N, L::NUM_ENTRIES);
 
         let table = unsafe {
+            labeling::unlabeled();
             Self::alloc_zeroed(
                 Layout::from_size_align(L::TABLE_SIZE * size, L::TABLE_ALIGN * align).unwrap(),
             )
@@ -184,6 +188,7 @@ impl<A: Address, L: Level, E: Entry, const N: usize> PageTableMethods<A, L, E, N
 
         let table = table as *mut PageTable<A, L, E, N>;
         unsafe {
+            labeling::unlabeled();
             let arr: [E; N] = core::array::from_fn(|_| E::new());
             (*table).entries = arr;
         }
@@ -193,6 +198,7 @@ impl<A: Address, L: Level, E: Entry, const N: usize> PageTableMethods<A, L, E, N
     fn new_with_base(base: usize) -> Result<*mut PageTable<A, L, E, N>, Error> {
         let table = base as *mut PageTable<A, L, E, N>;
         unsafe {
+            labeling::unlabeled();
             let arr: [E; N] = core::array::from_fn(|_| E::new());
             (*table).entries = arr;
         }
@@ -268,6 +274,7 @@ impl<A: Address, L: Level, E: Entry, const N: usize> PageTableMethods<A, L, E, N
 
     default fn drop(&mut self) {
         unsafe {
+            labeling::unlabeled();
             Self::dealloc(
                 self as *mut PageTable<A, L, E, N> as *mut u8,
                 Layout::from_size_align(L::TABLE_SIZE, L::TABLE_ALIGN).unwrap(),
@@ -352,6 +359,7 @@ where
         if L::THIS_LEVEL < S::MAP_TABLE_LEVEL {
             self.entries[index].set_with_page_table_flags_via_alloc(index, || {
                 let subtable = unsafe {
+                    labeling::unlabeled();
                     Self::alloc_zeroed(
                         Layout::from_size_align(
                             L::NextLevel::TABLE_SIZE,
@@ -366,6 +374,7 @@ where
                     let subtable_ptr = subtable
                         as *mut PageTable<A, L::NextLevel, E, { L::NextLevel::NUM_ENTRIES }>;
                     unsafe {
+                        labeling::unlabeled();
                         let arr: [E; L::NextLevel::NUM_ENTRIES] =
                             core::array::from_fn(|_| E::new());
                         (*subtable_ptr).entries = arr;
@@ -396,12 +405,14 @@ where
             if entry.points_to_table_or_page() {
                 let subtable_addr = entry.address(L::THIS_LEVEL).unwrap();
                 let subtable: &mut PageTable<A, L::NextLevel, E, N> = unsafe {
+                    labeling::unlabeled();
                     &mut *(subtable_addr.as_usize() as *mut PageTable<A, L::NextLevel, E, N>)
                 };
                 subtable.drop();
             }
         }
         unsafe {
+            labeling::unlabeled();
             Self::dealloc(
                 self as *mut PageTable<A, L, E, N> as *mut u8,
                 Layout::from_size_align(L::TABLE_SIZE, L::TABLE_SIZE).unwrap(),
@@ -434,9 +445,10 @@ where
 
         let index = E::index::<L>(page.address().into());
         match self.entries[index].subtable(index, L::THIS_LEVEL) {
-            Ok(table_addr) => {
-                Ok(unsafe { &mut *(table_addr as *mut PageTable<A, L::NextLevel, E, N>) })
-            }
+            Ok(table_addr) => Ok(unsafe {
+                labeling::unlabeled();
+                &mut *(table_addr as *mut PageTable<A, L::NextLevel, E, N>)
+            }),
             Err(_) => Err(Error::MmSubtableError),
         }
     }
@@ -452,7 +464,10 @@ where
 
         let index = E::index::<L>(page.address().into());
         let table_addr = self.entries[index].subtable(index, L::THIS_LEVEL)?;
-        let table = unsafe { &mut *(table_addr as *mut PageTable<A, L::NextLevel, E, N>) };
+        let table = unsafe {
+            labeling::unlabeled();
+            &mut *(table_addr as *mut PageTable<A, L::NextLevel, E, N>)
+        };
         table.set_page(page, phys, flags, is_raw)
     }
 }

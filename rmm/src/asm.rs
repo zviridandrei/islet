@@ -24,6 +24,7 @@ pub fn smc(cmd: usize, args: &[usize]) -> [usize; 8] {
     // TODO: support more number of registers than 8 if needed
     #[cfg(not(kani))]
     unsafe {
+        labeling::unlabeled();
         asm!(
             "smc #0x0",
             inlateout("x0") padded_args[0] => ret[0],
@@ -45,6 +46,7 @@ pub fn dcache_flush(addr: usize, len: usize) {
     let mut cur_addr = addr;
     let addr_end = addr + len;
     unsafe {
+        labeling::unlabeled();
         while cur_addr < addr_end {
             asm!("dc civac, {}", in(reg) cur_addr);
             asm!("dsb ish");

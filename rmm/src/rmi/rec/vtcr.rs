@@ -5,7 +5,10 @@ use armv9a::bits_in_reg;
 use armv9a::regs::*;
 
 fn is_feat_vmid16_present() -> bool {
-    unsafe { ID_AA64MMFR1_EL1.get_masked_value(ID_AA64MMFR1_EL1::VMID) == mmfr1_vmid::VMIDBITS_16 }
+    unsafe {
+        labeling::unlabeled();
+        ID_AA64MMFR1_EL1.get_masked_value(ID_AA64MMFR1_EL1::VMID) == mmfr1_vmid::VMIDBITS_16
+    }
 }
 
 pub fn prepare_vtcr(rd: &Rd) -> Result<u64, Error> {
@@ -50,6 +53,7 @@ pub fn prepare_vtcr(rd: &Rd) -> Result<u64, Error> {
 
 pub fn activate_stage2_mmu(rec: &Rec<'_>) {
     unsafe {
+        labeling::unlabeled();
         VTCR_EL2.set(rec.vtcr());
     }
 }

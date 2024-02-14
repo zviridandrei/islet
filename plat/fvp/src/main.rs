@@ -15,6 +15,7 @@ use islet_rmm::cpu;
 
 #[no_mangle]
 pub unsafe fn main() -> ! {
+    labeling::unlabeled();
     info!(
         "booted on core {:2} with EL{}!",
         cpu::get_cpu_id(),

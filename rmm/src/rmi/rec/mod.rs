@@ -59,7 +59,10 @@ impl Rec<'_> {
             return Err(Error::RmiErrorInput);
         }
 
-        if let Err(input_owner) = self.owner.set(unsafe { &*(owner as *const Rd) }) {
+        if let Err(input_owner) = self.owner.set(unsafe {
+            labeling::unlabeled();
+            &*(owner as *const Rd)
+        }) {
             error!(
                 "Rec::init() called twice. cur owner: {:x}, input owner: {:x}",
                 self.get_owner()? as *const Rd as usize,
@@ -184,6 +187,7 @@ impl Content for Rec<'_> {
 
 fn enter() -> [usize; 4] {
     unsafe {
+        labeling::unlabeled();
         if let Some(vcpu) = realm::vcpu::current() {
             if vcpu.is_realm_dead() {
                 vcpu.from_current();
@@ -198,6 +202,7 @@ fn enter() -> [usize; 4] {
 
 fn exit() {
     unsafe {
+        labeling::unlabeled();
         if let Some(vcpu) = realm::vcpu::current() {
             vcpu.from_current();
         }

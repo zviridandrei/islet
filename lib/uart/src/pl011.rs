@@ -87,6 +87,7 @@ impl DeviceInner {
     pub fn putc(&mut self, byte: u8) -> Result<()> {
         if self.ready {
             unsafe {
+                labeling::unlabeled();
                 while self.register.offset(UARTFR).read_volatile() & UARTFR_TXFF_BIT == 0 {}
                 self.register.offset(UARTDR).write_volatile(byte as u32);
             }
@@ -105,6 +106,7 @@ impl io::Device for DeviceInner {
     fn initialize(&mut self) -> Result<()> {
         if !self.ready {
             unsafe {
+                labeling::unlabeled();
                 //Disable uart before programming
                 self.register.offset(UARTCR).write_volatile(
                     self.register.offset(UARTCR).read_volatile() & !(UARTCR::EN as u32),

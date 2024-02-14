@@ -8,7 +8,10 @@ define_sys_register!(
 
 define_sys_register!(CurrentEL, EL[3 - 2]);
 pub fn current_el() -> u8 {
-    unsafe { CurrentEL.get_masked_value(CurrentEL::EL) as u8 }
+    unsafe {
+        labeling::unlabeled();
+        CurrentEL.get_masked_value(CurrentEL::EL) as u8
+    }
 }
 
 define_sys_register!(VBAR_EL2, RES0[10 - 0]);

@@ -75,7 +75,10 @@ macro_rules! offset_of {
     ($type:ty, $field:tt) => {{
         let dummy = core::mem::MaybeUninit::<$type>::uninit();
         let dummy_ptr = dummy.as_ptr();
-        let member_ptr = unsafe { ::core::ptr::addr_of!((*dummy_ptr).$field) };
+        let member_ptr = unsafe {
+            labeling::unlabeled();
+            ::core::ptr::addr_of!((*dummy_ptr).$field)
+        };
 
         member_ptr as usize - dummy_ptr as usize
     }};
@@ -98,7 +101,13 @@ mod test {
 
         println!();
 
-        assert_eq!(unsafe { (*mock_ptr).output() }, "\n");
+        assert_eq!(
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
+            "\n"
+        );
     }
 
     #[test]
@@ -108,7 +117,13 @@ mod test {
         stdout().attach(mock).ok().unwrap();
 
         println!("hello");
-        assert_eq!(unsafe { (*mock_ptr).output() }, "hello\n");
+        assert_eq!(
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
+            "hello\n"
+        );
     }
 
     #[test]
@@ -118,7 +133,13 @@ mod test {
         stdout().attach(mock).ok().unwrap();
 
         println!("number {}", 1234);
-        assert_eq!(unsafe { (*mock_ptr).output() }, "number 1234\n");
+        assert_eq!(
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
+            "number 1234\n"
+        );
     }
 
     #[test]
@@ -128,7 +149,13 @@ mod test {
         stdout().attach(mock).ok().unwrap();
 
         eprintln!();
-        assert_eq!(unsafe { (*mock_ptr).output() }, "\x1b[0;31m\n\x1b[0m");
+        assert_eq!(
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
+            "\x1b[0;31m\n\x1b[0m"
+        );
     }
 
     #[test]
@@ -138,7 +165,13 @@ mod test {
         stdout().attach(mock).ok().unwrap();
 
         eprintln!("hello");
-        assert_eq!(unsafe { (*mock_ptr).output() }, "\x1b[0;31mhello\n\x1b[0m");
+        assert_eq!(
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
+            "\x1b[0;31mhello\n\x1b[0m"
+        );
     }
 
     #[test]
@@ -149,7 +182,10 @@ mod test {
 
         eprintln!("number {}", 4321);
         assert_eq!(
-            unsafe { (*mock_ptr).output() },
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
             "\x1b[0;31mnumber 4321\n\x1b[0m"
         );
     }

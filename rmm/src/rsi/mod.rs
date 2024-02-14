@@ -72,6 +72,7 @@ pub fn do_host_call(
         .ok_or(Error::RmiErrorInput)?;
 
     unsafe {
+        labeling::unlabeled();
         let host_call = HostCall::parse_mut(pa.into());
         if rec.host_call_pending() {
             for i in 0..HOST_CALL_NR_GPRS {
@@ -338,6 +339,7 @@ pub fn set_event_handler(rsi: &mut RsiHandle) {
 
         // TODO: check ipa_state value, ipa address granularity
         unsafe {
+            labeling::unlabeled();
             run.set_exit_reason(rmi::EXIT_RIPAS_CHANGE);
             run.set_ripas(ipa_start as u64, ipa_size as u64, ipa_state);
             rec.set_ripas(

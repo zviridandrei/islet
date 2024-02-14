@@ -162,6 +162,7 @@ pub fn get_token(
     );
 
     unsafe {
+        labeling::unlabeled();
         let pa_ptr = attest_pa as *mut u8;
         core::ptr::copy(token.as_ptr(), pa_ptr, token.len());
     }

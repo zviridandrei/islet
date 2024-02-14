@@ -19,6 +19,7 @@ impl RealmConfig {
     // `console=ttyS0 root=/dev/vda rw  console=pl011,mmio,0x1c0a0000 console=ttyAMA0 printk.devkmsg=on`.
     // So, we get back to use the same kernel argument with TF-RMM's one (uart0 & uart3).
     pub unsafe fn init(config_addr: usize, ipa_width: usize) {
+        labeling::unlabeled();
         let config: &mut RealmConfig = &mut *(config_addr as *mut RealmConfig);
         config.ipa_width = ipa_width;
     }
@@ -33,7 +34,10 @@ pub fn realm_config(id: usize, config_ipa: usize, ipa_bits: usize) -> Result<(),
         .ipa_to_pa(GuestPhysAddr::from(config_ipa), RTT_PAGE_LEVEL);
     if let Some(pa) = res {
         let pa: usize = pa.into();
-        unsafe { RealmConfig::init(pa, ipa_bits) };
+        unsafe {
+            labeling::unlabeled();
+            RealmConfig::init(pa, ipa_bits)
+        };
         Ok(())
     } else {
         Err(Error::RmiErrorInput)

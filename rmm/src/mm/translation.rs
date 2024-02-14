@@ -66,6 +66,7 @@ struct Inner<'a> {
 impl<'a> Inner<'a> {
     pub fn new() -> Self {
         let root_pgtlb = unsafe {
+            labeling::unlabeled();
             &mut *RootPageTable::<VirtAddr, L1Table, Entry, { <L1Table as Level>::NUM_ENTRIES }>::new_with_align(
                 NUM_ROOT_PAGE,
                 ALIGN_ROOT_PAGE,
@@ -90,6 +91,7 @@ impl<'a> Inner<'a> {
         let device_flags = bits_in_reg(PTDesc::INDX, attr::mair_idx::DEVICE_MEM);
 
         unsafe {
+            labeling::unlabeled();
             let base_address = &__RMM_BASE__ as *const u64 as u64;
             let rw_start = &__RW_START__ as *const u64 as u64;
             let ro_size = rw_start - base_address;

@@ -44,7 +44,10 @@ impl<'a, T: HostAccessor> PointerGuard<'a, T> {
     fn validate(&self) -> bool {
         // TODO: at this point, not sure we need this per-field validation.
         // we need to revisit this function after investigating RMM spec and TF-RMM once again.
-        let obj = unsafe { &*self.inner.ptr };
+        let obj = unsafe {
+            labeling::unlabeled();
+            &*self.inner.ptr
+        };
         obj.validate()
     }
 }
@@ -56,7 +59,10 @@ impl<'a, T: HostAccessor> Deref for PointerGuard<'a, T> {
     /// the only safe way to get this `PointerGuard` is through `Pointer::acquire` method,
     /// and after the validation, it is safe to dereference the original pointer.
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.inner.ptr }
+        unsafe {
+            labeling::unlabeled();
+            &*self.inner.ptr
+        }
     }
 }
 
@@ -100,7 +106,10 @@ pub struct PointerMutGuard<'a, T: HostAccessor> {
 
 impl<'a, T: HostAccessor> PointerMutGuard<'a, T> {
     fn validate(&self) -> bool {
-        let obj = unsafe { &*self.inner.ptr };
+        let obj = unsafe {
+            labeling::unlabeled();
+            &*self.inner.ptr
+        };
         obj.validate()
     }
 }
@@ -109,13 +118,19 @@ impl<'a, T: HostAccessor> Deref for PointerMutGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.inner.ptr }
+        unsafe {
+            labeling::unlabeled();
+            &*self.inner.ptr
+        }
     }
 }
 
 impl<'a, T: HostAccessor> DerefMut for PointerMutGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.inner.ptr }
+        unsafe {
+            labeling::unlabeled();
+            &mut *self.inner.ptr
+        }
     }
 }
 
@@ -145,6 +160,7 @@ macro_rules! copy_from_host_or_ret {
 
         let mut dst_obj: $target_type = $target_type::default();
         unsafe {
+            labeling::unlabeled();
             core::ptr::copy_nonoverlapping::<$target_type>(
                 &*src_obj as *const $target_type,
                 &mut dst_obj as *mut $target_type,
@@ -171,6 +187,7 @@ macro_rules! copy_from_host_or_ret {
 
         let mut dst_obj: $target_type = $target_type::default();
         unsafe {
+            labeling::unlabeled();
             core::ptr::copy_nonoverlapping::<$target_type>(
                 &*src_obj as *const $target_type,
                 &mut dst_obj as *mut $target_type,
@@ -194,6 +211,7 @@ macro_rules! copy_to_host_or_ret {
         };
 
         unsafe {
+            labeling::unlabeled();
             core::ptr::copy_nonoverlapping::<$target_type>(
                 $src_obj as *const $target_type,
                 &mut *dst_obj as *mut $target_type,

@@ -102,6 +102,7 @@ impl Granule {
     fn zeroize(&mut self) {
         let buf = self.addr;
         unsafe {
+            labeling::unlabeled();
             core::ptr::write_bytes(buf as *mut usize, 0x0, GRANULE_SIZE / 8);
         }
     }

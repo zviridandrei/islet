@@ -22,7 +22,7 @@ macro_rules! define_sys_register {
             pub struct Register;
             impl Register {
                 #[inline(always)]
-                pub unsafe fn get(&self) -> u64 {
+                pub unsafe fn get(&self) -> u64 { labeling::unlabeled();
                     let rtn;
                     core::arch::asm! {
                         concat!("mrs {}, ", stringify!($regname)),
@@ -32,7 +32,7 @@ macro_rules! define_sys_register {
                 }
 
                 #[inline(always)]
-                pub unsafe fn get_masked(&self, mask: u64) -> u64 {
+                pub unsafe fn get_masked(&self, mask: u64) -> u64 { labeling::unlabeled();
                     let rtn: u64;
                     core::arch::asm! {
                         concat!("mrs {}, ", stringify!($regname)),
@@ -42,7 +42,7 @@ macro_rules! define_sys_register {
                 }
 
                 #[inline(always)]
-                pub unsafe fn get_masked_value(&self, mask: u64) -> u64 {
+                pub unsafe fn get_masked_value(&self, mask: u64) -> u64 { labeling::unlabeled();
                     let rtn: u64;
                     core::arch::asm! {
                         concat!("mrs {}, ", stringify!($regname)),
@@ -52,7 +52,7 @@ macro_rules! define_sys_register {
                 }
 
                 #[inline(always)]
-                pub unsafe fn set(&self, val: u64) {
+                pub unsafe fn set(&self, val: u64) { labeling::unlabeled();
                     core::arch::asm! {
                         concat!("msr ", stringify!($regname), ", {}"),
                         in(reg) val
@@ -77,7 +77,7 @@ macro_rules! define_register {
             pub struct Register;
             impl Register {
                 #[inline(always)]
-                pub unsafe fn get(&self) -> u64 {
+                pub unsafe fn get(&self) -> u64 { labeling::unlabeled();
                     let rtn;
                     core::arch::asm! {
                         concat!("mov {}, ", stringify!($regname)),
@@ -87,7 +87,7 @@ macro_rules! define_register {
                 }
 
                 #[inline(always)]
-                pub unsafe fn get_masked(&self, mask: u64) -> u64 {
+                pub unsafe fn get_masked(&self, mask: u64) -> u64 { labeling::unlabeled();
                     let rtn: u64;
                     core::arch::asm! {
                         concat!("mov {}, ", stringify!($regname)),
@@ -97,7 +97,7 @@ macro_rules! define_register {
                 }
 
                 #[inline(always)]
-                pub unsafe fn get_masked_value(&self, mask: u64) -> u64 {
+                pub unsafe fn get_masked_value(&self, mask: u64) -> u64 { labeling::unlabeled();
                     let rtn: u64;
                     core::arch::asm! {
                         concat!("mov {}, ", stringify!($regname)),
@@ -107,7 +107,7 @@ macro_rules! define_register {
                 }
 
                 #[inline(always)]
-                pub unsafe fn set(&self, val: u64) {
+                pub unsafe fn set(&self, val: u64) { labeling::unlabeled();
                     core::arch::asm! {
                         concat!("mov ", stringify!($regname), ", {}"),
                         in(reg) val

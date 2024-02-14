@@ -51,6 +51,7 @@ impl<T: Context + Default> VCPU<T> {
 
     pub fn into_current(&mut self) {
         unsafe {
+            labeling::unlabeled();
             T::into_current(self);
 
             core::mem::forget(self.me.upgrade().unwrap());
@@ -60,6 +61,7 @@ impl<T: Context + Default> VCPU<T> {
 
     pub fn from_current(&mut self) {
         unsafe {
+            labeling::unlabeled();
             T::from_current(self);
 
             let ptr = Arc::into_raw(self.me.upgrade().unwrap());
@@ -88,6 +90,7 @@ pub enum State {
 }
 
 pub unsafe fn current() -> Option<&'static mut VCPU<crate::realm::context::Context>> {
+    labeling::unlabeled();
     match TPIDR_EL2.get() {
         0 => None,
         current => Some(&mut *(current as *mut VCPU<crate::realm::context::Context>)),

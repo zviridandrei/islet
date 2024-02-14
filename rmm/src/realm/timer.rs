@@ -20,25 +20,67 @@ pub fn set_cnthctl(vcpu: &mut VCPU<Context>, val: u64) {
 pub fn restore_state(vcpu: &VCPU<Context>) {
     let timer = &vcpu.context.timer;
 
-    unsafe { CNTVOFF_EL2.set(timer.cntvoff_el2) };
-    unsafe { S3_4_C14_C0_6.set(timer.cntpoff_el2) }; // CNTPOFF_EL2
-    unsafe { CNTV_CVAL_EL0.set(timer.cntv_cval_el0) };
-    unsafe { CNTV_CTL_EL0.set(timer.cntv_ctl_el0) };
-    unsafe { CNTP_CVAL_EL0.set(timer.cntp_cval_el0) };
-    unsafe { CNTP_CTL_EL0.set(timer.cntp_ctl_el0) };
-    unsafe { S3_4_C14_C1_0.set(timer.cnthctl_el2) }; // CNTHCTL_EL2
+    unsafe {
+        labeling::unlabeled();
+        CNTVOFF_EL2.set(timer.cntvoff_el2)
+    };
+    unsafe {
+        labeling::unlabeled();
+        S3_4_C14_C0_6.set(timer.cntpoff_el2)
+    }; // CNTPOFF_EL2
+    unsafe {
+        labeling::unlabeled();
+        CNTV_CVAL_EL0.set(timer.cntv_cval_el0)
+    };
+    unsafe {
+        labeling::unlabeled();
+        CNTV_CTL_EL0.set(timer.cntv_ctl_el0)
+    };
+    unsafe {
+        labeling::unlabeled();
+        CNTP_CVAL_EL0.set(timer.cntp_cval_el0)
+    };
+    unsafe {
+        labeling::unlabeled();
+        CNTP_CTL_EL0.set(timer.cntp_ctl_el0)
+    };
+    unsafe {
+        labeling::unlabeled();
+        S3_4_C14_C1_0.set(timer.cnthctl_el2)
+    }; // CNTHCTL_EL2
 }
 
 pub fn save_state(vcpu: &mut VCPU<Context>) {
     let timer = &mut vcpu.context.timer;
 
-    timer.cntvoff_el2 = unsafe { CNTVOFF_EL2.get() };
-    timer.cntv_cval_el0 = unsafe { CNTV_CVAL_EL0.get() };
-    timer.cntv_ctl_el0 = unsafe { CNTV_CTL_EL0.get() };
-    timer.cntpoff_el2 = unsafe { S3_4_C14_C0_6.get() }; // CNTPOFF_EL2
-    timer.cntp_cval_el0 = unsafe { CNTP_CVAL_EL0.get() };
-    timer.cntp_ctl_el0 = unsafe { CNTP_CTL_EL0.get() };
-    timer.cnthctl_el2 = unsafe { S3_4_C14_C1_0.get() };
+    timer.cntvoff_el2 = unsafe {
+        labeling::unlabeled();
+        CNTVOFF_EL2.get()
+    };
+    timer.cntv_cval_el0 = unsafe {
+        labeling::unlabeled();
+        CNTV_CVAL_EL0.get()
+    };
+    timer.cntv_ctl_el0 = unsafe {
+        labeling::unlabeled();
+        CNTV_CTL_EL0.get()
+    };
+    timer.cntpoff_el2 = unsafe {
+        labeling::unlabeled();
+        S3_4_C14_C0_6.get()
+    }; // CNTPOFF_EL2
+    timer.cntp_cval_el0 = unsafe {
+        labeling::unlabeled();
+        CNTP_CVAL_EL0.get()
+    };
+    timer.cntp_ctl_el0 = unsafe {
+        labeling::unlabeled();
+        CNTP_CTL_EL0.get()
+    };
+    timer.cnthctl_el2 = unsafe {
+        labeling::unlabeled();
+        S3_4_C14_C1_0.get()
+    };
 }
 
 pub fn send_state_to_host(id: usize, vcpu: usize, run: &mut Run) -> Result<(), Error> {
@@ -51,6 +93,7 @@ pub fn send_state_to_host(id: usize, vcpu: usize, run: &mut Run) -> Result<(), E
     let timer = &vcpu.lock().context.timer;
 
     unsafe {
+        labeling::unlabeled();
         run.set_cntv_ctl(timer.cntv_ctl_el0);
         run.set_cntv_cval(timer.cntv_cval_el0 - timer.cntvoff_el2);
         run.set_cntp_ctl(timer.cntp_ctl_el0);

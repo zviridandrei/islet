@@ -8,9 +8,13 @@ static mut HEAP: [MaybeUninit<u8>; RMM_HEAP_SIZE] = [MaybeUninit::uninit(); RMM_
 static mut ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub unsafe fn init() {
+    labeling::unlabeled();
     ALLOCATOR.lock().init_from_slice(&mut HEAP);
 }
 
 pub fn get_used_size() -> usize {
-    unsafe { ALLOCATOR.lock().used() }
+    unsafe {
+        labeling::unlabeled();
+        ALLOCATOR.lock().used()
+    }
 }

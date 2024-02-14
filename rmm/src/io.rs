@@ -110,7 +110,10 @@ pub mod test {
 
         stdout.attach(mock).ok().unwrap();
 
-        assert!(unsafe { (*mock_ptr).initialized() });
+        assert!(unsafe {
+            labeling::unlabeled();
+            (*mock_ptr).initialized()
+        });
     }
 
     #[test]
@@ -123,6 +126,12 @@ pub mod test {
 
         stdout.write_all("Hello ".as_bytes()).ok().unwrap();
         stdout.write_all("World!".as_bytes()).ok().unwrap();
-        assert_eq!(unsafe { (*mock_ptr).output() }, "Hello World!");
+        assert_eq!(
+            unsafe {
+                labeling::unlabeled();
+                (*mock_ptr).output()
+            },
+            "Hello World!"
+        );
     }
 }

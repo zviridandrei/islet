@@ -78,6 +78,7 @@ impl page_table::Entry for Entry {
         }
 
         unsafe {
+            labeling::unlabeled();
             core::arch::asm!(
                 "dsb ishst",
                 "dc civac, {}",

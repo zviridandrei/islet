@@ -58,7 +58,10 @@ pub extern "C" fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
                 debug!("PCAlignmentFault");
             }
             Syndrome::DataAbort(fault) => {
-                let far = unsafe { FAR_EL2.get() };
+                let far = unsafe {
+                    labeling::unlabeled();
+                    FAR_EL2.get()
+                };
                 debug!("Data Abort (higher), far:{:X}", far);
                 match fault {
                     Fault::AddressSize { level } => {
@@ -153,6 +156,7 @@ pub extern "C" fn handle_lower_exception(
 
                 // Inject undefined exception to the realm
                 unsafe {
+                    labeling::unlabeled();
                     SPSR_EL1.set(vcpu.context.spsr);
                     ELR_EL1.set(vcpu.context.elr);
 
@@ -172,7 +176,10 @@ pub extern "C" fn handle_lower_exception(
                 tf.regs[0] = RecExitReason::Sync(ExitSyncType::Undefined).into();
                 tf.regs[1] = esr as u64;
                 tf.regs[2] = 0;
-                tf.regs[3] = unsafe { FAR_EL2.get() };
+                tf.regs[3] = unsafe {
+                    labeling::unlabeled();
+                    FAR_EL2.get()
+                };
                 RET_TO_REC
             }
             Syndrome::SMC => {
@@ -189,9 +196,18 @@ pub extern "C" fn handle_lower_exception(
                     tf.regs[0] = RecExitReason::Sync(ExitSyncType::DataAbort).into();
                 }
                 tf.regs[1] = esr as u64;
-                tf.regs[2] = unsafe { HPFAR_EL2.get() };
-                tf.regs[3] = unsafe { FAR_EL2.get() };
-                let fipa = unsafe { HPFAR_EL2.get_masked(HPFAR_EL2::FIPA) } << 8;
+                tf.regs[2] = unsafe {
+                    labeling::unlabeled();
+                    HPFAR_EL2.get()
+                };
+                tf.regs[3] = unsafe {
+                    labeling::unlabeled();
+                    FAR_EL2.get()
+                };
+                let fipa = unsafe {
+                    labeling::unlabeled();
+                    HPFAR_EL2.get_masked(HPFAR_EL2::FIPA)
+                } << 8;
                 debug!("fipa: {:X}", fipa);
                 debug!("esr_el2: {:X}", esr);
                 RET_TO_RMM
@@ -206,8 +222,14 @@ pub extern "C" fn handle_lower_exception(
                 debug!("Synchronous: WFx");
                 tf.regs[0] = RecExitReason::Sync(ExitSyncType::Undefined).into();
                 tf.regs[1] = esr as u64;
-                tf.regs[2] = unsafe { HPFAR_EL2.get() };
-                tf.regs[3] = unsafe { FAR_EL2.get() };
+                tf.regs[2] = unsafe {
+                    labeling::unlabeled();
+                    HPFAR_EL2.get()
+                };
+                tf.regs[3] = unsafe {
+                    labeling::unlabeled();
+                    FAR_EL2.get()
+                };
                 advance_pc(vcpu);
                 RET_TO_RMM
             }
@@ -215,8 +237,14 @@ pub extern "C" fn handle_lower_exception(
                 debug!("Synchronous: Other");
                 tf.regs[0] = RecExitReason::Sync(ExitSyncType::Undefined).into();
                 tf.regs[1] = esr as u64;
-                tf.regs[2] = unsafe { HPFAR_EL2.get() };
-                tf.regs[3] = unsafe { FAR_EL2.get() };
+                tf.regs[2] = unsafe {
+                    labeling::unlabeled();
+                    HPFAR_EL2.get()
+                };
+                tf.regs[3] = unsafe {
+                    labeling::unlabeled();
+                    FAR_EL2.get()
+                };
                 RET_TO_RMM
             }
         },

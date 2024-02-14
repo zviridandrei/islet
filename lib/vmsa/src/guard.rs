@@ -25,11 +25,17 @@ impl<'a, E> EntryGuard<'a, E> {
         // Note: flag can be used here for validation checks.
         //  e.g., `if T::FLAGS != self.flags { error }`
         //        for example of Granule, T::FLAGS is Rd while self.flags at run-time is not Rd.
-        unsafe { &*(self.addr as *const T) }
+        unsafe {
+            labeling::unlabeled();
+            &*(self.addr as *const T)
+        }
     }
 
     pub fn content_mut<T: Content>(&mut self) -> &mut T {
-        unsafe { &mut *(self.addr as *mut T) }
+        unsafe {
+            labeling::unlabeled();
+            &mut *(self.addr as *mut T)
+        }
     }
 }
 

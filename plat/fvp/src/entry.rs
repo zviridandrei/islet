@@ -40,6 +40,7 @@ extern "C" {
 }
 
 unsafe fn clear_bss() {
+    labeling::unlabeled();
     let bss = core::slice::from_raw_parts_mut(
         &__BSS_START__ as *const usize as *mut u64,
         &__BSS_SIZE__ as *const usize as usize / core::mem::size_of::<u64>(),
@@ -57,6 +58,7 @@ fn init_console() {
 /// Initialize the memory management configuration.
 /// This function is called once in cold boot.
 unsafe fn init_mm() {
+    labeling::unlabeled();
     // Assert 4KB granules are supported.
     assert_eq!(
         ID_AA64MMFR0_EL1.get_masked_value(ID_AA64MMFR0_EL1::TGran4),
@@ -74,6 +76,7 @@ unsafe fn init_mm() {
 #[no_mangle]
 #[allow(unused)]
 unsafe fn setup() {
+    labeling::unlabeled();
     static mut COLD_BOOT: bool = true;
 
     if (&COLD_BOOT as *const bool).read_volatile() {

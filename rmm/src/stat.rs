@@ -96,6 +96,7 @@ impl Stats {
         }
 
         unsafe {
+            labeling::unlabeled();
             COLLECTED_STAT_CNT = COLLECTED_STAT_CNT.wrapping_add(1);
             if COLLECTED_STAT_CNT % 10 == 0 {
                 self.print();

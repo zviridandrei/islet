@@ -107,7 +107,10 @@ macro_rules! get_granule {
             if !validate_addr($addr) {
                 Err(MmError::MmInvalidAddr)
             } else {
-                if let Some(gst) = unsafe { &mut GRANULE_STATUS_TABLE } {
+                if let Some(gst) = unsafe {
+                    labeling::unlabeled();
+                    &mut GRANULE_STATUS_TABLE
+                } {
                     let pa =
                         Page::<GranuleSize, PhysAddr>::including_address(PhysAddr::from($addr));
                     match gst
@@ -198,7 +201,10 @@ pub fn check_granule_parent(parent: &Inner, child: &Inner) -> Result<(), RmiErro
 /// This is the only function that doesn't take `Inner` as input, instead it takes a raw address.
 /// Notice: do not directly call this function outside this file.
 pub fn set_granule_raw(addr: usize, state: u64) -> Result<(), Error> {
-    if let Some(gst) = unsafe { &mut GRANULE_STATUS_TABLE } {
+    if let Some(gst) = unsafe {
+        labeling::unlabeled();
+        &mut GRANULE_STATUS_TABLE
+    } {
         gst.set_granule(addr, state)
     } else {
         Err(Error::MmErrorOthers)
@@ -232,6 +238,7 @@ pub fn validate_addr(addr: usize) -> bool {
 // TODO: we can use "constructors" for this kind of initialization. (we can define macros for that)
 pub fn create_granule_status_table() {
     unsafe {
+        labeling::unlabeled();
         if GRANULE_STATUS_TABLE.is_none() {
             GRANULE_STATUS_TABLE = Some(GranuleStatusTable::new());
         }
@@ -268,6 +275,7 @@ mod test {
 
     fn recreate_granule_status_table() {
         unsafe {
+            labeling::unlabeled();
             if GRANULE_STATUS_TABLE.is_none() {
                 GRANULE_STATUS_TABLE = Some(GranuleStatusTable::new());
             } else {

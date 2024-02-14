@@ -63,24 +63,55 @@ fn handle_sysreg_id(vcpu: &mut VCPU<Context>, esr: u64) -> u64 {
     mask = !mask;
 
     vcpu.context.gp_regs[rt] = match idreg as u32 {
-        ISS_ID_AA64PFR0_EL1 => unsafe { ID_AA64PFR0_EL1.get() & mask },
-        ISS_ID_AA64PFR1_EL1 => unsafe { ID_AA64PFR1_EL1.get() & mask },
-        //ISS_ID_AA64ZFR0_EL1 => unsafe { ID_AA64ZFR0_EL1.get()  & mask },
+        ISS_ID_AA64PFR0_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64PFR0_EL1.get() & mask
+        },
+        ISS_ID_AA64PFR1_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64PFR1_EL1.get() & mask
+        },
+        //ISS_ID_AA64ZFR0_EL1 => unsafe { labeling::unlabeled(); ID_AA64ZFR0_EL1.get()  & mask },
         ISS_ID_AA64DFR0_EL1 => unsafe {
+            labeling::unlabeled();
             let mut dfr0_set = AA64DFR0(0);
             dfr0_set.set_masked_value(AA64DFR0::DebugVer, 6);
             dfr0_set.set_masked_value(AA64DFR0::BRPs, 1);
             dfr0_set.set_masked_value(AA64DFR0::WRPs, 1);
             ID_AA64DFR0_EL1.get() & mask | dfr0_set.get()
         },
-        ISS_ID_AA64DFR1_EL1 => unsafe { ID_AA64DFR1_EL1.get() & mask },
-        ISS_ID_AA64AFR0_EL1 => unsafe { ID_AA64AFR0_EL1.get() & mask },
-        ISS_ID_AA64AFR1_EL1 => unsafe { ID_AA64AFR1_EL1.get() & mask },
-        ISS_ID_AA64ISAR0_EL1 => unsafe { ID_AA64ISAR0_EL1.get() & mask },
-        ISS_ID_AA64ISAR1_EL1 => unsafe { ID_AA64ISAR1_EL1.get() & mask },
-        ISS_ID_AA64MMFR0_EL1 => unsafe { ID_AA64MMFR0_EL1.get() & mask },
-        ISS_ID_AA64MMFR1_EL1 => unsafe { ID_AA64MMFR1_EL1.get() & mask },
-        ISS_ID_AA64MMFR2_EL1 => unsafe { ID_AA64MMFR2_EL1.get() & mask }, //0x10211122,
+        ISS_ID_AA64DFR1_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64DFR1_EL1.get() & mask
+        },
+        ISS_ID_AA64AFR0_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64AFR0_EL1.get() & mask
+        },
+        ISS_ID_AA64AFR1_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64AFR1_EL1.get() & mask
+        },
+        ISS_ID_AA64ISAR0_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64ISAR0_EL1.get() & mask
+        },
+        ISS_ID_AA64ISAR1_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64ISAR1_EL1.get() & mask
+        },
+        ISS_ID_AA64MMFR0_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64MMFR0_EL1.get() & mask
+        },
+        ISS_ID_AA64MMFR1_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64MMFR1_EL1.get() & mask
+        },
+        ISS_ID_AA64MMFR2_EL1 => unsafe {
+            labeling::unlabeled();
+            ID_AA64MMFR2_EL1.get() & mask
+        }, //0x10211122,
         _ => 0x0,
     };
     trap::RET_TO_REC

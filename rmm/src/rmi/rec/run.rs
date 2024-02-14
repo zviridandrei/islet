@@ -12,10 +12,12 @@ pub struct Run {
 
 impl Run {
     pub unsafe fn entry_flags(&self) -> u64 {
+        labeling::unlabeled();
         self.entry.inner.flags.val
     }
 
     pub unsafe fn entry_gpr(&self, idx: usize) -> Result<u64, Error> {
+        labeling::unlabeled();
         if idx >= NR_GPRS {
             error!("out of index: {}", idx);
             return Err(Error::RmiErrorInput);
@@ -24,38 +26,47 @@ impl Run {
     }
 
     pub unsafe fn entry_gic_lrs(&self) -> &[u64; 16] {
+        labeling::unlabeled();
         &self.entry.inner.gicv3.inner.lrs
     }
 
     pub unsafe fn entry_gic_hcr(&self) -> u64 {
+        labeling::unlabeled();
         self.entry.inner.gicv3.inner.hcr
     }
 
     pub unsafe fn exit_gic_lrs_mut(&mut self) -> &mut [u64; 16] {
+        labeling::unlabeled();
         &mut (*(*self.exit.inner).gicv3.inner).lrs
     }
 
     pub unsafe fn set_imm(&mut self, imm: u16) {
+        labeling::unlabeled();
         (*self.exit.inner).imm.val = imm;
     }
 
     pub unsafe fn set_exit_reason(&mut self, exit_reason: u8) {
+        labeling::unlabeled();
         (*self.exit.inner).exit_reason.val = exit_reason;
     }
 
     pub unsafe fn set_esr(&mut self, esr: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).sys_regs.inner).esr = esr;
     }
 
     pub unsafe fn set_far(&mut self, far: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).sys_regs.inner).far = far;
     }
 
     pub unsafe fn set_hpfar(&mut self, hpfar: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).sys_regs.inner).hpfar = hpfar;
     }
 
     pub unsafe fn set_gpr(&mut self, idx: usize, val: u64) -> Result<(), Error> {
+        labeling::unlabeled();
         if idx >= NR_GPRS {
             error!("out of index: {}", idx);
             return Err(Error::RmiErrorInput);
@@ -65,40 +76,49 @@ impl Run {
     }
 
     pub unsafe fn set_ripas(&mut self, base: u64, size: u64, state: u8) {
+        labeling::unlabeled();
         (*(*self.exit.inner).ripas.inner).base = base;
         (*(*self.exit.inner).ripas.inner).size = size;
         (*(*self.exit.inner).ripas.inner).value = state;
     }
 
     pub unsafe fn set_gic_lrs(&mut self, src: &[u64], len: usize) {
+        labeling::unlabeled();
         (*(*self.exit.inner).gicv3.inner).lrs[..len].copy_from_slice(&src[..len])
     }
 
     pub unsafe fn set_gic_misr(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).gicv3.inner).misr = val;
     }
 
     pub unsafe fn set_gic_vmcr(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).gicv3.inner).vmcr = val;
     }
 
     pub unsafe fn set_gic_hcr(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).gicv3.inner).hcr = val;
     }
 
     pub unsafe fn set_cntv_ctl(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).cnt.inner).v_ctl = val;
     }
 
     pub unsafe fn set_cntv_cval(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).cnt.inner).v_cval = val;
     }
 
     pub unsafe fn set_cntp_ctl(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).cnt.inner).p_ctl = val;
     }
 
     pub unsafe fn set_cntp_cval(&mut self, val: u64) {
+        labeling::unlabeled();
         (*(*self.exit.inner).cnt.inner).p_cval = val;
     }
 }
@@ -107,6 +127,7 @@ impl core::fmt::Debug for Run {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         // Safety: union type should be initialized
         unsafe {
+            labeling::unlabeled();
             f.debug_struct("rec::Run")
                 .field(
                     "entry::flags",
@@ -189,6 +210,7 @@ impl Drop for Run {
     fn drop(&mut self) {
         // TODO: recursive drop
         unsafe {
+            labeling::unlabeled();
             core::mem::ManuallyDrop::drop(&mut self.entry.inner);
             core::mem::ManuallyDrop::drop(&mut self.exit.inner);
         }
@@ -364,6 +386,7 @@ impl HostAccessor for Run {
         const ICH_LR_HW_OFFSET: usize = 61;
         // A6.1 Realm interrupts, HW == '0'
         unsafe {
+            labeling::unlabeled();
             for lr in &self.entry.inner.gicv3.inner.lrs {
                 if lr & (1 << ICH_LR_HW_OFFSET) != 0 {
                     return false;

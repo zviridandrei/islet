@@ -74,17 +74,33 @@ pub(super) const fn abi_version_get_minor(version: u32) -> u32 {
 }
 
 pub(super) fn abi_version(fd: i32, data: *mut u32) -> nix::Result<()> {
-    unsafe { internal::abi_version(fd, data) }.map(|_| ())
+    unsafe {
+        labeling::unlabeled();
+        internal::abi_version(fd, data)
+    }
+    .map(|_| ())
 }
 
 pub(super) fn measurement_read(fd: i32, data: &mut [RsiMeasurement]) -> nix::Result<()> {
-    unsafe { internal::measurement_read(fd, data) }.map(|_| ())
+    unsafe {
+        labeling::unlabeled();
+        internal::measurement_read(fd, data)
+    }
+    .map(|_| ())
 }
 
 pub(super) fn measurement_extend(fd: i32, data: &[RsiMeasurement]) -> nix::Result<()> {
-    unsafe { internal::measurement_extend(fd, data) }.map(|_| ())
+    unsafe {
+        labeling::unlabeled();
+        internal::measurement_extend(fd, data)
+    }
+    .map(|_| ())
 }
 
 pub(super) fn attestation_token(fd: i32, data: &mut [RsiAttestation]) -> nix::Result<()> {
-    unsafe { internal::attestation_token(fd, data) }.map(|_| ())
+    unsafe {
+        labeling::unlabeled();
+        internal::attestation_token(fd, data)
+    }
+    .map(|_| ())
 }

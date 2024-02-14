@@ -10,4 +10,5 @@ path = "src/lib.rs"
 
 [dependencies]
 islet_rmm = { path = "../../rmm" }
+labeling = { path = "../labeling" }
 spinning_top = "0.2.4"

@@ -105,6 +105,7 @@ impl crate::realm::vcpu::Context for Context {
     }
 
     unsafe fn into_current(vcpu: &mut VCPU<Self>) {
+        labeling::unlabeled();
         vcpu.pcpu = Some(get_cpu_id());
         vcpu.context.sys_regs.vmpidr = vcpu.pcpu.unwrap() as u64;
         TPIDR_EL2.set(vcpu as *const _ as u64);
@@ -113,6 +114,7 @@ impl crate::realm::vcpu::Context for Context {
     }
 
     unsafe fn from_current(vcpu: &mut VCPU<Self>) {
+        labeling::unlabeled();
         gic::save_state(vcpu);
         timer::save_state(vcpu);
         vcpu.pcpu = None;

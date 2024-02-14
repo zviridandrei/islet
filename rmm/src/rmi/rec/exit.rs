@@ -46,6 +46,7 @@ pub fn handle_realm_exit(
             handle_data_abort(realm_exit_res, rec, run)?
         }
         RecExitReason::IRQ => unsafe {
+            labeling::unlabeled();
             run.set_exit_reason(rmi::EXIT_IRQ);
             run.set_esr(realm_exit_res[1] as u64);
             run.set_hpfar(realm_exit_res[2] as u64);
@@ -54,6 +55,7 @@ pub fn handle_realm_exit(
         },
         RecExitReason::Sync(ExitSyncType::InstAbort)
         | RecExitReason::Sync(ExitSyncType::Undefined) => unsafe {
+            labeling::unlabeled();
             run.set_exit_reason(rmi::EXIT_SYNC);
             run.set_esr(realm_exit_res[1] as u64);
             run.set_hpfar(realm_exit_res[2] as u64);
@@ -106,6 +108,7 @@ fn handle_data_abort(
     let far_el2 = realm_exit_res[3] as u64;
 
     unsafe {
+        labeling::unlabeled();
         run.set_exit_reason(rmi::EXIT_SYNC);
         run.set_hpfar(hpfar_el2);
     }
@@ -119,6 +122,7 @@ fn handle_data_abort(
                 if esr_el2 & EsrEl2::WNR != 0 {
                     let write_val = get_write_val(realm_id, rec.vcpuid(), esr_el2)?;
                     unsafe {
+                        labeling::unlabeled();
                         run.set_gpr(0, write_val)?;
                     }
                 }
@@ -130,6 +134,7 @@ fn handle_data_abort(
         };
 
     unsafe {
+        labeling::unlabeled();
         run.set_esr(exit_esr);
         run.set_far(exit_far);
     }

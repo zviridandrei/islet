@@ -8,14 +8,17 @@ pub struct HostCall {
 
 impl HostCall {
     pub unsafe fn parse<'a>(addr: usize) -> &'a Self {
+        labeling::unlabeled();
         &*(addr as *const Self)
     }
 
     pub unsafe fn parse_mut<'a>(addr: usize) -> &'a mut Self {
+        labeling::unlabeled();
         &mut *(addr as *mut Self)
     }
 
     pub unsafe fn set_gpr(&mut self, idx: usize, val: u64) -> Result<(), Error> {
+        labeling::unlabeled();
         if idx >= HOST_CALL_NR_GPRS {
             error!("out of index: {}", idx);
             return Err(Error::RmiErrorInput);
@@ -27,13 +30,17 @@ impl HostCall {
     // Safety: union type should be initialized
     // Check UB
     pub fn imm(&self) -> u16 {
-        unsafe { self.inner.val.imm }
+        unsafe {
+            labeling::unlabeled();
+            self.inner.val.imm
+        }
     }
 }
 
 impl Drop for HostCall {
     fn drop(&mut self) {
         unsafe {
+            labeling::unlabeled();
             core::mem::ManuallyDrop::drop(&mut self.inner.val);
         }
     }
@@ -43,6 +50,7 @@ impl core::fmt::Debug for HostCall {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         // Safety: union type should be initialized
         unsafe {
+            labeling::unlabeled();
             f.debug_struct("rsi::HostCall")
                 .field("imm", &format_args!("{:#X}", &self.inner.val.imm))
                 .field("gprs", &self.inner.val.gprs)

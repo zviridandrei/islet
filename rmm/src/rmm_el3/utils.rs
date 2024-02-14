@@ -4,7 +4,10 @@ use spinning_top::{Spinlock, SpinlockGuard};
 
 pub(super) fn va_to_vec(ptr: usize, len: usize) -> Vec<u8> {
     let ptr: *const u8 = ptr as *const u8;
-    unsafe { slice::from_raw_parts(ptr, len).to_vec() }
+    unsafe {
+        labeling::unlabeled();
+        slice::from_raw_parts(ptr, len).to_vec()
+    }
 }
 
 pub(super) fn vec_to_va(vec: &Vec<u8>, ptr: usize, len: usize) {
@@ -16,6 +19,7 @@ pub(super) fn vec_to_va(vec: &Vec<u8>, ptr: usize, len: usize) {
     let v_ptr = vec.as_ptr();
     let ptr = ptr as *mut u8;
     unsafe {
+        labeling::unlabeled();
         ptr::copy(v_ptr, ptr, vec.len());
     }
 }
