@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use alloc::{string::String, vec::Vec};
+use alloc::{string::String, vec::Vec, vec};
 use ciborium::Value;
 use tinyvec::ArrayVec;
 
@@ -39,6 +39,15 @@ pub type RAKPubKey = Data<u8, 97>;
 pub struct Claim<T> {
     value: T,
     label: u64,
+}
+
+impl<T> Claim<T> {
+    fn new(label: u64, value: T) -> Claim<T> {
+        Self {
+            label,
+            value
+        }
+    }
 }
 
 impl<T: Into<Value>> From<Claim<T>> for (Value, Value) {
@@ -97,10 +106,8 @@ impl RealmClaims {
             value: Data::from_slice(challenge),
         };
 
-        let personalization_value: Claim<PersonalizationValue> = Claim {
-            label: PERSONALIZATION_VALUE_LABEL,
-            value: Data::from_slice(personalization_val),
-        };
+        let personalization_value: Claim<PersonalizationValue> =
+            Claim::new(PERSONALIZATION_VALUE_LABEL, Data::from_slice(personalization_val));
 
         let measurement_size = match measurement_hash_algo.as_str() {
             "sha-256" => 32,
@@ -108,35 +115,28 @@ impl RealmClaims {
             _ => panic!("Unexpected hash algo id {}", measurement_hash_algo),
         };
 
-        let rim: Claim<RIM> = Claim {
-            label: INITIAL_MEASUREMENT_LABEL,
-            value: MeasurementEntry(measurements[MEASUREMENTS_SLOT_RIM], measurement_size),
-        };
+        let rim: Claim<RIM> = Claim::new(
+            INITIAL_MEASUREMENT_LABEL,
+            MeasurementEntry(measurements[MEASUREMENTS_SLOT_RIM], measurement_size)
+        );
 
         let mut rems_data = [MeasurementEntry::default(); REM_SLOT_NR];
         for i in 0..REM_SLOT_NR {
             rems_data[i] = MeasurementEntry(measurements[i + 1], measurement_size);
         }
 
-        let rems: Claim<REMs> = Claim {
-            label: EXTENSIBLE_MEASUREMENTS_LABEL,
-            value: Data::from_slice(&rems_data),
-        };
+        let rems: Claim<REMs> = Claim::new(EXTENSIBLE_MEASUREMENTS_LABEL,
+            Data::from_slice(&rems_data));
 
-        let hash_algo_id: Claim<HashAlgo> = Claim {
-            label: HASH_ALGO_ID_LABEL,
-            value: measurement_hash_algo,
-        };
+        let hash_algo_id: Claim<HashAlgo> = Claim::new(HASH_ALGO_ID_LABEL,
+                                                       measurement_hash_algo);
 
-        let rak_pub: Claim<RAKPubKey> = Claim {
-            label: PUBLIC_KEY_LABEL,
-            value: Data::from_slice(key_pub),
-        };
+        let rak_pub: Claim<RAKPubKey> = Claim::new(PUBLIC_KEY_LABEL, Data::from_slice(key_pub));
 
-        let rak_pub_hash_algo: Claim<HashAlgo> = Claim {
-            label: PUBLIC_KEY_HASH_ALOG_ID_LABEL,
-            value: key_pub_hash_algo,
-        };
+        let rak_pub_hash_algo: Claim<HashAlgo> = Claim::new(
+            PUBLIC_KEY_HASH_ALOG_ID_LABEL,
+            key_pub_hash_algo
+        );
 
         Self {
             challenge: challenge_claim,
@@ -147,5 +147,19 @@ impl RealmClaims {
             rak_pub,
             rak_pub_hash_algo,
         }
+    }
+}
+
+impl Into<Value> for RealmClaims {
+    fn into(self) -> Value {
+        Value::Map(vec![
+            self.challenge.into(),
+            self.personalization_value.into(),
+            self.rim.into(),
+            self.rems.into(),
+            self.measurement_hash_algo.into(),
+            self.rak_pub.into(),
+            self.rak_pub_hash_algo.into(),
+        ])
     }
 }

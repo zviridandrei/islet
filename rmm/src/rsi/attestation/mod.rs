@@ -116,18 +116,8 @@ impl Attestation {
             String::from("sha-256"),
         );
 
-        let claims_map: Vec<(Value, Value)> = vec![
-            claims.challenge.into(),
-            claims.personalization_value.into(),
-            claims.rim.into(),
-            claims.rems.into(),
-            claims.measurement_hash_algo.into(),
-            claims.rak_pub.into(),
-            claims.rak_pub_hash_algo.into(),
-        ];
-
         let mut realm_token = Vec::new();
-        ser::into_writer(&Value::Map(claims_map), &mut realm_token)
+        ser::into_writer::<Value, _>(&claims.into(), &mut realm_token)
             .expect("Failed to serialize realm token");
 
         let protected = HeaderBuilder::new()
