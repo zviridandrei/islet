@@ -52,8 +52,8 @@ fn is_valid_rtt_cmd(ipa: usize, level: usize) -> bool {
 
 pub fn set_event_handler(mainloop: &mut Mainloop) {
     listen!(mainloop, rmi::RTT_CREATE, |arg, _ret, _rmm| {
-        let rtt_addr = arg[0];
-        let rd_granule = get_granule_if!(arg[1], GranuleState::RD)?;
+        let rd_granule = get_granule_if!(arg[0], GranuleState::RD)?;
+        let rtt_addr = arg[1];
         let rd = rd_granule.content::<Rd>();
         let ipa = arg[2];
         let level = arg[3];
@@ -61,7 +61,7 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
         if !is_valid_rtt_cmd(ipa, level) {
             return Err(Error::RmiErrorInput);
         }
-        if rtt_addr == arg[1] {
+        if rtt_addr == arg[0] {
             return Err(Error::RmiErrorInput);
         }
         crate::rtt::create(rd.id(), rtt_addr, ipa, level)?;
@@ -97,7 +97,6 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
         crate::rtt::init_ripas(rd.id(), ipa, level)?;
 
         HashContext::new(rd)?.measure_ripas_granule(ipa, level as u8)?;
-
         Ok(())
     });
 
