@@ -17,13 +17,15 @@ fn encode_version() -> usize {
 
 pub fn set_event_handler(mainloop: &mut Mainloop) {
     listen!(mainloop, rmi::VERSION, |arg, ret, _| {
-
         let req = arg[0];
 
         let (req_major, req_minor) = decode_version(req);
 
         if req_major != rmi::ABI_MAJOR_VERSION || req_minor != rmi::ABI_MINOR_VERSION {
-            warn!("Wrong unsupported version requested ({}, {})", req_major, req_minor);
+            warn!(
+                "Wrong unsupported version requested ({}, {})",
+                req_major, req_minor
+            );
             return Err(Error::RmiErrorInput);
         }
 

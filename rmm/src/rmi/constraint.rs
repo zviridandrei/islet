@@ -77,7 +77,7 @@ lazy_static! {
         );
         m.insert(
             rmi::RTT_DESTROY,
-            Constraint::new(rmi::RTT_DESTROY, 5, 1),
+            Constraint::new(rmi::RTT_DESTROY, 4, 3),
         );
         m.insert(
             rmi::RTT_INIT_RIPAS,

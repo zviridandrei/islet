@@ -234,7 +234,10 @@ pub fn set_event_handler(rsi: &mut RsiHandle) {
         let (req_major, req_minor) = version::decode_version(req);
 
         if req_major != ABI_VERSION_MAJOR || req_minor != ABI_VERSION_MINOR {
-            warn!("Wrong unsupported version requested ({}, {})", req_major, req_minor);
+            warn!(
+                "Wrong unsupported version requested ({}, {})",
+                req_major, req_minor
+            );
             set_reg(realmid, vcpuid, 0, ERROR_INPUT)?;
             ret[0] = rmi::SUCCESS_REC_ENTER;
             return Ok(());
