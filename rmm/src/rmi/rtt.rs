@@ -308,12 +308,11 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
     });
 
     // Unmap a non-secure PA at an unprotected IPA
-    listen!(mainloop, rmi::RTT_UNMAP_UNPROTECTED, |arg, _ret, _rmm| {
-        let ipa = arg[1];
-
+    listen!(mainloop, rmi::RTT_UNMAP_UNPROTECTED, |arg, ret, _rmm| {
         let rd_granule = get_granule_if!(arg[0], GranuleState::RD)?;
         let rd = rd_granule.content::<Rd>();
-        let realm_id = rd.id();
+
+        let ipa = arg[1];
 
         let level = arg[2];
         if (level < RTT_MIN_BLOCK_LEVEL)
@@ -322,7 +321,9 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
         {
             return Err(Error::RmiErrorInput);
         }
-        crate::rtt::unmap_unprotected(realm_id, ipa, level)?;
+        let top = crate::rtt::unmap_unprotected(rd, ipa, level)?;
+        ret[1] = top;
+
         Ok(())
     });
 }

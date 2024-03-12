@@ -328,18 +328,25 @@ pub fn map_unprotected(rd: &Rd, ipa: usize, level: usize, host_s2tte: usize) -> 
     Ok(())
 }
 
-pub fn unmap_unprotected(id: usize, ipa: usize, level: usize) -> Result<(), Error> {
+pub fn unmap_unprotected(rd: &Rd, ipa: usize, level: usize) -> Result<usize, Error> {
+    if rd.addr_in_par(ipa) {
+        return Err(Error::RmiErrorInput);
+    }
+
+    let id = rd.id();
     let (s2tte, last_level) = S2TTE::get_s2tte(id, ipa, level, Error::RmiErrorRtt(0))?;
 
     if level != last_level {
         return Err(Error::RmiErrorRtt(last_level));
     }
 
-    if !s2tte.is_valid(level, true) {
+    if !s2tte.is_assigned_ns(level) {
         return Err(Error::RmiErrorRtt(level));
     }
 
-    let new_s2tte: u64 = INVALID_UNPROTECTED;
+    let new_s2tte: u64 = bits_in_reg(S2TTE::NS, 1)
+        | bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::UNASSIGNED)
+        | INVALID_UNPROTECTED;
 
     get_realm(id)
         .ok_or(Error::RmiErrorOthers(NotExistRealm))?
@@ -349,8 +356,16 @@ pub fn unmap_unprotected(id: usize, ipa: usize, level: usize) -> Result<(), Erro
         .ipa_to_pte_set(GuestPhysAddr::from(ipa), level, new_s2tte)?;
 
     //TODO: add page/block invalidation
+    /*
+    if level == RTT_PAGE_LEVEL {
+        // invalidate the page
+    } else {
+        // invalidate the block
+    }
+    */
 
-    Ok(())
+    let top_ipa = skip_non_live_entries(id, ipa, level)?;
+    Ok(top_ipa)
 }
 
 pub fn make_shared(id: usize, ipa: usize, level: usize) -> Result<(), Error> {
