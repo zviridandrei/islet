@@ -177,12 +177,12 @@ pub fn init_ripas(id: usize, base: usize, top: usize) -> Result<usize, Error> {
 
     let mut addr = base & !(map_size - 1);
     if addr != base {
-        warn!("base is not aligned");
+        //warn!("base is not aligned");
         return Err(Error::RmiErrorRtt(last_level));
     }
 
     if top != (top & !(map_size - 1)) {
-        warn!("top is not aligned");
+        //warn!("top is not aligned");
         return Err(Error::RmiErrorRtt(last_level));
     }
 
