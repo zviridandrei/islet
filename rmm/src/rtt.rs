@@ -15,6 +15,17 @@ use crate::rmi::rtt::S2TTE_STRIDE;
 use crate::rmi::rtt_entry_state;
 use armv9a::bits_in_reg;
 
+fn level_map_size(level: usize) -> usize {
+    // TODO: get the translation granule from src/armv9
+    match level {
+        3 => GRANULE_SIZE, // 4096
+        2 => GRANULE_SIZE << S2TTE_STRIDE,
+        1 => GRANULE_SIZE << (S2TTE_STRIDE * 2),
+        0 => GRANULE_SIZE << (S2TTE_STRIDE * 3),
+        _ => unreachable!(),
+    }
+}
+
 pub fn create(id: usize, rtt_addr: usize, ipa: usize, level: usize) -> Result<(), Error> {
     let mut rtt_granule = get_granule_if!(rtt_addr, GranuleState::Delegated)?;
 
@@ -26,13 +37,7 @@ pub fn create(id: usize, rtt_addr: usize, ipa: usize, level: usize) -> Result<()
         return Err(Error::RmiErrorRtt(last_level));
     }
 
-    let map_size = match level {
-        3 => GRANULE_SIZE, // 4096
-        2 => GRANULE_SIZE << S2TTE_STRIDE,
-        1 => GRANULE_SIZE << (S2TTE_STRIDE * 2),
-        0 => GRANULE_SIZE << (S2TTE_STRIDE * 3),
-        _ => unreachable!(),
-    };
+    let map_size = level_map_size(level);
 
     let s2tt_len = s2tt.len();
     if parent_s2tte.is_unassigned() {
@@ -121,16 +126,12 @@ pub fn create(id: usize, rtt_addr: usize, ipa: usize, level: usize) -> Result<()
     Ok(())
 }
 
-pub fn destroy(rd: &Rd, ipa: usize, level: usize) -> Result<(), Error> {
+pub fn destroy(rd: &Rd, ipa: usize, level: usize) -> Result<(usize, usize), Error> {
     let id = rd.id();
     let (parent_s2tte, last_level) = S2TTE::get_s2tte(id, ipa, level - 1, Error::RmiErrorRtt(0))?;
 
-    if last_level != level - 1 {
+    if (last_level != level - 1) || !parent_s2tte.is_table(level - 1) {
         return Err(Error::RmiErrorRtt(last_level));
-    }
-
-    if !parent_s2tte.is_table(level - 1) {
-        return Err(Error::RmiErrorRtt(level - 1));
     }
 
     let rtt_addr = parent_s2tte
@@ -141,12 +142,19 @@ pub fn destroy(rd: &Rd, ipa: usize, level: usize) -> Result<(), Error> {
 
     let mut g_rtt = get_granule_if!(rtt_addr, GranuleState::RTT)?;
 
+    // TODO: granule needs to contain its refcount info.
+    //       Unless its ref count is 0, RTT DESTROY should fail
+
     let parent_s2tte = if rd.addr_in_par(ipa) {
-        bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::DESTROYED)
+        bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::UNASSIGNED)
+            | bits_in_reg(S2TTE::INVALID_RIPAS, invalid_ripas::DESTROYED)
     } else {
-        INVALID_UNPROTECTED
+        bits_in_reg(S2TTE::NS, 1)
+            | bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::UNASSIGNED)
+            | INVALID_UNPROTECTED
     };
 
+    // TODO: invalidate block of pages in block
     get_realm(id)
         .ok_or(Error::RmiErrorOthers(NotExistRealm))?
         .lock()
@@ -155,7 +163,9 @@ pub fn destroy(rd: &Rd, ipa: usize, level: usize) -> Result<(), Error> {
         .ipa_to_pte_set(GuestPhysAddr::from(ipa), level - 1, parent_s2tte)?;
 
     set_granule(&mut g_rtt, GranuleState::Delegated)?;
-    Ok(())
+
+    let top_ipa = skip_non_live_entries(id, ipa, level)?;
+    Ok((rtt_addr, top_ipa))
 }
 
 pub fn init_ripas(id: usize, base: usize, top: usize) -> Result<usize, Error> {
@@ -163,20 +173,16 @@ pub fn init_ripas(id: usize, base: usize, top: usize) -> Result<usize, Error> {
     let level = RTT_PAGE_LEVEL;
     let (_s2tte, last_level) = S2TTE::get_s2tte(id, base, level, Error::RmiErrorRtt(0))?;
 
-    let map_size = match last_level {
-        3 => GRANULE_SIZE, // 4096
-        2 => GRANULE_SIZE << S2TTE_STRIDE,
-        1 => GRANULE_SIZE << (S2TTE_STRIDE * 2),
-        0 => GRANULE_SIZE << (S2TTE_STRIDE * 3),
-        _ => unreachable!(),
-    };
+    let map_size = level_map_size(last_level);
 
     let mut addr = base & !(map_size - 1);
     if addr != base {
+        warn!("base is not aligned");
         return Err(Error::RmiErrorRtt(last_level));
     }
 
     if top != (top & !(map_size - 1)) {
+        warn!("top is not aligned");
         return Err(Error::RmiErrorRtt(last_level));
     }
 
@@ -188,19 +194,21 @@ pub fn init_ripas(id: usize, base: usize, top: usize) -> Result<usize, Error> {
             break;
         }
         let (s2tte, last_level) = S2TTE::get_s2tte(id, addr, level, Error::RmiErrorRtt(0))?;
-        if s2tte.is_table(last_level) || !s2tte.is_unassigned() {
-            return Err(Error::RmiErrorRtt(last_level));
+        if s2tte.is_unassigned_empty() {
+            let new_s2tte = bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::UNASSIGNED)
+                | bits_in_reg(S2TTE::INVALID_RIPAS, invalid_ripas::RAM);
+
+            get_realm(id)
+                .ok_or(Error::RmiErrorOthers(NotExistRealm))?
+                .lock()
+                .page_table
+                .lock()
+                .ipa_to_pte_set(GuestPhysAddr::from(addr), last_level, new_s2tte)?;
+        } else if !s2tte.is_unassigned_ram() {
+            break;
         }
+        // TODO: measurement
 
-        let mut new_s2tte = s2tte.get();
-        new_s2tte |= bits_in_reg(S2TTE::INVALID_RIPAS, invalid_ripas::RAM);
-
-        get_realm(id)
-            .ok_or(Error::RmiErrorOthers(NotExistRealm))?
-            .lock()
-            .page_table
-            .lock()
-            .ipa_to_pte_set(GuestPhysAddr::from(addr), last_level, new_s2tte)?;
         addr += map_size;
     }
 
@@ -478,7 +486,7 @@ pub fn data_destroy(id: usize, ipa: usize) -> Result<(usize, usize), Error> {
     } else if s2tte.is_assigned_empty() {
         flags |= bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::UNASSIGNED);
         flags |= bits_in_reg(S2TTE::INVALID_RIPAS, invalid_ripas::EMPTY);
-    } else if s2tte.is_destroyed() {
+    } else if s2tte.is_assigned_destroyed() {
         flags |= bits_in_reg(S2TTE::INVALID_HIPAS, invalid_hipas::UNASSIGNED);
         flags |= bits_in_reg(S2TTE::INVALID_RIPAS, invalid_ripas::DESTROYED);
     }
@@ -490,6 +498,27 @@ pub fn data_destroy(id: usize, ipa: usize) -> Result<(usize, usize), Error> {
         .lock()
         .ipa_to_pte_set(GuestPhysAddr::from(ipa), level, new_s2tte)?;
 
-    // TODO: call skip_non_live_entries
-    Ok((pa, ipa))
+    let top_ipa = skip_non_live_entries(id, ipa, level)?;
+
+    Ok((pa, top_ipa))
+}
+
+fn skip_non_live_entries(id: usize, base: usize, level: usize) -> Result<usize, Error> {
+    let map_size = level_map_size(level);
+
+    let mut addr = base & !(map_size - 1);
+    if addr != base {
+        return Err(Error::RmiErrorRtt(level));
+    }
+
+    let parent_map_size = map_size << S2TTE_STRIDE;
+    let top_addr = (addr & !(parent_map_size - 1)) + parent_map_size;
+    while addr < top_addr {
+        let (s2tte, _last_level) = S2TTE::get_s2tte(id, addr, level, Error::RmiErrorRtt(level))?;
+        if s2tte.is_live(level) {
+            break;
+        }
+        addr += map_size;
+    }
+    Ok(addr)
 }

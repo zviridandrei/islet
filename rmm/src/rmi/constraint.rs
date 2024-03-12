@@ -8,7 +8,7 @@ use alloc::collections::btree_map::BTreeMap;
 #[derive(Default, Copy, Clone)]
 pub struct Constraint {
     pub cmd: Command,
-    pub arg_num: usize,
+    pub arg_num: usize, // number of args including fid
     pub ret_num: usize,
     // TODO: add validate function for each RMI command (validate type or value inside registers)
 }
