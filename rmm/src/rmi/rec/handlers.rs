@@ -128,6 +128,10 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
         let mut run = copy_from_host_or_ret!(Run, run_pa, Error::RmiErrorRec);
         trace!("{:?}", run);
 
+        if !crate::gic::validate_state(&run) {
+            return Err(Error::RmiErrorRec);
+        }
+
         if rec.host_call_pending() {
             do_host_call(arg, ret, rmm, rec, &mut run)?;
         }
