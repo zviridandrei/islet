@@ -18,10 +18,6 @@ pub struct HostCall {
 const_assert_eq!(core::mem::size_of::<HostCall>(), GRANULE_SIZE);
 
 impl HostCall {
-    pub unsafe fn parse<'a>(addr: usize) -> &'a Self {
-        &*(addr as *const Self)
-    }
-
     pub unsafe fn parse_mut<'a>(addr: usize) -> &'a mut Self {
         &mut *(addr as *mut Self)
     }
@@ -46,5 +42,12 @@ impl core::fmt::Debug for HostCall {
             .field("imm", &format_args!("{:#X}", &self.imm))
             .field("gprs", &self.gprs)
             .finish()
+    }
+}
+
+impl safe_abstraction::RawPtr for HostCall {
+    fn is_within_range(&self) -> bool {
+        // Check granule or DRAM Range?
+        true
     }
 }
