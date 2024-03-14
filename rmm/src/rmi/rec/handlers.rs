@@ -17,6 +17,7 @@ use crate::rmi::realm::{rd::State, Rd};
 use crate::rmi::rec::exit::handle_realm_exit;
 use crate::rmi::rec::RecState;
 use crate::rsi::do_host_call;
+use crate::rsi::psci::complete_psci;
 use crate::{get_granule, get_granule_if};
 
 extern crate alloc;
@@ -119,6 +120,10 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
             }
         }
 
+        if rec.psci_pending() {
+            return Err(Error::RmiErrorRec);
+        }
+
         // read Run
         let mut run = copy_from_host_or_ret!(Run, run_pa, Error::RmiErrorRec);
         trace!("{:?}", run);
@@ -169,5 +174,31 @@ pub fn set_event_handler(mainloop: &mut Mainloop) {
         // NOTICE: do not modify `run` after copy_to_host_or_ret!(). it won't have any effect.
         copy_to_host_or_ret!(Run, &run, run_pa);
         Ok(())
+    });
+
+    listen!(mainloop, rmi::PSCI_COMPLETE, |arg, _ret, _rmm| {
+        let caller_pa = arg[0];
+        let target_pa = arg[1];
+
+        if caller_pa == target_pa {
+            return Err(Error::RmiErrorInput);
+        }
+        let mut caller_granule = get_granule_if!(caller_pa, GranuleState::Rec)?;
+        let caller = caller_granule.content_mut::<Rec<'_>>();
+
+        let mut target_granule = get_granule_if!(target_pa, GranuleState::Rec)?;
+        let target = target_granule.content_mut::<Rec<'_>>();
+
+        let status = arg[2];
+
+        if !caller.psci_pending() {
+            return Err(Error::RmiErrorInput);
+        }
+
+        if caller.realmid()? != target.realmid()? {
+            return Err(Error::RmiErrorInput);
+        }
+
+        complete_psci(caller, target, status)
     });
 }
